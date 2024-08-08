@@ -1,5 +1,7 @@
 set(ARKANOID_SOURCES
     Arkanoid.cpp
+    Game.cpp
+    Block.cpp
 )
 
 # if(WIN32)
