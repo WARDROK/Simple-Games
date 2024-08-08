@@ -15,3 +15,5 @@ FetchContent_MakeAvailable(SFML)
 
 add_subdirectory(Arkanoid)
 add_subdirectory(Snake)
+
+
