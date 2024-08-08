@@ -48,7 +48,7 @@ void MainMenu::ProcessInput()
 {
     sf::Event event;
     
-    while (!m_isPlayButtonPressed && !m_isExitButtonPressed)
+    while (!m_isPlayButtonPressed && !m_isExitButtonPressed && _window->isOpen())
     {
         _window->pollEvent(event);
         
