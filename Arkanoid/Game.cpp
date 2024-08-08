@@ -3,6 +3,20 @@
 
 Game::Game()
 {
+    Init();
+    while(window->isOpen())
+    {
+        Play();
+    }
+
+}
+
+Game::~Game()
+{
+}
+
+void Game::Init()
+{
     srand(time(nullptr));
 
     window = std::make_unique<sf::RenderWindow>(sf::VideoMode(520*SCALE, 450*SCALE), "Arkanoid Game!");
@@ -21,124 +35,140 @@ Game::Game()
     tBall.loadFromFile("assets/Arkanoid/ball.png");
     tPaddle.loadFromFile("assets/Arkanoid/paddle.png");
 
-    // Objects Sprites
+    // Background Init
     sBackground.setTexture(tBackground);
-    sBall.setTexture(tBall);
+    sBackground.setScale(SCALE, SCALE);
+
+    // Paddle Init
     sPaddle.setTexture(tPaddle);
-
-
-    // Set centers points and scale
     sPaddle.setOrigin(sPaddle.getLocalBounds().width / 2, sPaddle.getLocalBounds().height / 2);
     sPaddle.setPosition(260*SCALE, 440*SCALE);
+    sPaddle.setScale(SCALE, SCALE);
 
-    sBall.setOrigin(sBall.getLocalBounds().width / 2, sBall.getLocalBounds().height / 2);
-    sBall.setPosition(260*SCALE, 300*SCALE);
+    // Blocks Init
+    _blocks.clear();
+    _nBlocks = 0;
 
-    sBackground.setScale(SCALE, SCALE);
-    sBall.setScale(SCALE, SCALE);
-    sPaddle.setScale(SCALE, SCALE);;
-}
-
-Game::~Game()
-{
-}
-
-void Game::Run()
-{
-    Blocks.clear();
-    _blocks = 0;
-
-    for(int i = 1; i <= 10; i++)
+    for(int row = 1; row <= 10; row++)
     {
-        for(int j = 1; j <= 10; j++)
+        for(int col = 1; col <= 10; col++)
         {
-            Blocks.push_back(Block(&tBlocks, 2));
-            Blocks[_blocks].setTexture();
-            Blocks[_blocks].sprite.setPosition(i*43*SCALE, j*20*SCALE);
-            Blocks[_blocks].sprite.setScale(SCALE, SCALE);
+            _blocks.push_back(Block(&tBlocks, row%5+1));
+            _blocks[_nBlocks].setTexture();
+            _blocks[_nBlocks].sprite.setPosition(col*43*SCALE, row*20*SCALE);
+            _blocks[_nBlocks].sprite.setScale(SCALE, SCALE);
             
-            _blocks++;
+            _nBlocks++;
         }
     }
 
-    float dx = 0, dy=4*SCALE;
-
-    sf::Event event;
+    // Ball init
+    _ball.addTexture(&tBall);
+    _ball.setTexture();
+    _ball.sprite.setPosition(260*SCALE, 300*SCALE);
+    _ball.sprite.setScale(SCALE, SCALE);
+    _ball.setSpeed(((rand()%31-15)/10.f)*SCALE, 4*SCALE);
     
-    while(window->isOpen())
+}
+
+void Game::Play()
+{
+    sf::Event event;
+
+    while(window->pollEvent(event))
     {
-        
-        while(window->pollEvent(event))
+        if(event.type == sf::Event::Closed)
         {
-            if(event.type == sf::Event::Closed)
-            {
-                window->close();
-            }
+            window->close();
         }
+    }
+    
+    // Check collision with edge
+    bounceWithEdge(_ball);
 
-        sBall.move(dx, 0);
-        for(int i = 0; i < _blocks; i++)
-        {
-            if(isCollide(Blocks[i], sBall))
-            {
-                Blocks.erase(Blocks.begin() + i);
-                _blocks--;
-                dx = -dx;
-            }
-        }
+    // Check collison with blocks
+    _ball.moveX();
+    if(isCollide(_ball, _blocks)) _ball.bounceX();
 
-        sBall.move(0, dy);
-        for(int i = 0; i < _blocks; i++)
-        {
-            if(isCollide(Blocks[i], sBall))
-            {
-                Blocks.erase(Blocks.begin() + i);
-                _blocks--;
-                dy = -dy;
-            }
-        }
-
-
-        sf::Vector2f b = sBall.getPosition();
-        if (b.x < 0 || b.x > 520*SCALE) dx = -dx;
-        if (b.y < 0 || b.y > 450*SCALE) dy = -dy;
-
-        if(sBall.getPosition().y >= 450*SCALE) break;
-
-        if(isCollide(sPaddle, sBall))
-        {
-            dy = -dy;
-            dx = (rand()%8-4)*SCALE;
-        }
-
+    _ball.moveY();
+    if(isCollide(_ball, _blocks)) _ball.bounceY();
+    
+    // Check collision with paddle
+    if(isCollide(_ball, sPaddle))
+    {
+        _ball.bounceY();
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
         {
-            sPaddle.move(-6*SCALE, 0);
+            _ball.setSpeedX((rand()%4-4)*SCALE);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
         {
-            sPaddle.move(6*SCALE, 0);
+            _ball.setSpeedX((rand()%4+1)*SCALE);
         }
+    }
 
-        sf::Vector2f p = sPaddle.getPosition();
-        if (p.x < 0*SCALE) sPaddle.move(6*SCALE, 0);
-        if (p.x > 520*SCALE) sPaddle.move(-6*SCALE, 0);
-        
+    paddleMove();
 
-        window->clear();
-        window->draw(sBackground);
-        window->draw(sBall);
-        window->draw(sPaddle);
+    window->clear();
+    window->draw(sBackground);
+    window->draw(_ball.sprite);
+    window->draw(sPaddle);
 
-        for(int i = 0; i < _blocks; i++)
-        {
-            window->draw(Blocks[i].sprite);
-        }
+    for(int i = 0; i < _nBlocks; i++)
+    {
+        window->draw(_blocks[i].sprite);
+    }
 
-        window->display();
+    window->display();
+}
+
+void Game::End()
+{
+    window->close();
+}
+
+void Game::paddleMove()
+{
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+    {
+        sPaddle.move(-6*SCALE, 0);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+    {
+        sPaddle.move(6*SCALE, 0);
+    }
+
+    sf::Vector2f p = sPaddle.getPosition();
+    if (p.x < 0*SCALE) sPaddle.move(6*SCALE, 0);
+    if (p.x > 520*SCALE) sPaddle.move(-6*SCALE, 0);
+}
+
+void Game::bounceWithEdge(Ball &ball)
+{
+    sf::Vector2f b = ball.sprite.getPosition();
+    if (b.x < 0 || b.x > 520*SCALE) ball.bounceX();
+    if (b.y < 0 || b.y > 450*SCALE) ball.bounceY();
+
+    if(ball.sprite.getPosition().y >= 450*SCALE)
+    {
+        End();
     }
 }
 
+bool Game::isCollide(Ball &ball, std::vector<Block> &blocks)
+{
+    bool collide = false;
+    for(int i = 0; i < _nBlocks; i++)
+    {
+        if(isCollide(_blocks[i], _ball))
+        {
+            _blocks.erase(_blocks.begin() + i);
+            _nBlocks--;
+            collide = true;
+        }
+    }
+    return collide;
+}
 
 bool Game::isCollide(sf::Sprite s1, sf::Sprite s2)
 {

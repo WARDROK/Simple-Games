@@ -2,6 +2,7 @@ set(ARKANOID_SOURCES
     Arkanoid.cpp
     Game.cpp
     Block.cpp
+    Ball.cpp
 )
 
 # if(WIN32)
