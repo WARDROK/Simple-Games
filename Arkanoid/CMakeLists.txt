@@ -10,4 +10,4 @@ set(ARKANOID_SOURCES
 # endif()
 
 add_executable(Arkanoid ${ARKANOID_SOURCES} ${ARKANOID_RESOURCES})
-target_link_libraries(Arkanoid PUBLIC sfml-graphics)
+target_link_libraries(Arkanoid PUBLIC sfml-graphics sfml-audio)

@@ -7,6 +7,11 @@ Game::Game()
     while(window->isOpen())
     {
         Play();
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+        {
+            Pause();
+            _sleep(100);
+        }
     }
 
 }
@@ -19,19 +24,19 @@ void Game::Init()
 {
     srand(time(nullptr));
 
-    window = std::make_unique<sf::RenderWindow>(sf::VideoMode(520*SCALE, 450*SCALE), "Arkanoid Game!");
+    window = std::make_unique<sf::RenderWindow>(sf::VideoMode(WIDTH*SCALE, HEIGHT*SCALE), "Arkanoid Game!", sf::Style::Close);
     window->setFramerateLimit(60);
 
     // Blocks Textures
-    tBlocks[0].loadFromFile("assets/Arkanoid/block01.png");
-    tBlocks[1].loadFromFile("assets/Arkanoid/block02.png");
-    tBlocks[2].loadFromFile("assets/Arkanoid/block03.png");
-    tBlocks[3].loadFromFile("assets/Arkanoid/block04.png");
-    tBlocks[4].loadFromFile("assets/Arkanoid/block05.png");
+    tBlocks[0].loadFromFile("assets/Arkanoid/block1.png");
+    tBlocks[1].loadFromFile("assets/Arkanoid/block2.png");
+    tBlocks[2].loadFromFile("assets/Arkanoid/block3.png");
+    tBlocks[3].loadFromFile("assets/Arkanoid/block4.png");
+    tBlocks[4].loadFromFile("assets/Arkanoid/block5.png");
     
 
     // Other Textures
-    tBackground.loadFromFile("assets/Arkanoid/background.jpg");
+    tBackground.loadFromFile("assets/Arkanoid/background.png");
     tBall.loadFromFile("assets/Arkanoid/ball.png");
     tPaddle.loadFromFile("assets/Arkanoid/paddle.png");
 
@@ -42,33 +47,51 @@ void Game::Init()
     // Paddle Init
     sPaddle.setTexture(tPaddle);
     sPaddle.setOrigin(sPaddle.getLocalBounds().width / 2, sPaddle.getLocalBounds().height / 2);
-    sPaddle.setPosition(260*SCALE, 440*SCALE);
+    sPaddle.setPosition(WIDTH/2*SCALE, (HEIGHT-30)*SCALE);
     sPaddle.setScale(SCALE, SCALE);
 
     // Blocks Init
     _blocks.clear();
     _nBlocks = 0;
 
-    for(int row = 1; row <= 10; row++)
+    for (int row = 1; row <= BRICKS_MAP_HEART.size(); row++)
     {
-        for(int col = 1; col <= 10; col++)
+        for (int col = 1; col <= BRICKS_MAP_HEART[0].size(); col++)
         {
-            _blocks.push_back(Block(&tBlocks, row%5+1));
-            _blocks[_nBlocks].setTexture();
-            _blocks[_nBlocks].sprite.setPosition(col*43*SCALE, row*20*SCALE);
-            _blocks[_nBlocks].sprite.setScale(SCALE, SCALE);
             
-            _nBlocks++;
+            if(BRICKS_MAP_HEART[row-1][col-1] != 0)
+            {
+                _blocks.push_back(Block(&tBlocks, BRICKS_MAP_HEART[row-1][col-1]));
+                _blocks[_nBlocks].setTexture();
+                _blocks[_nBlocks].sprite.setPosition(col*42*SCALE, row*22*SCALE + 22*SCALE);
+                _blocks[_nBlocks].sprite.setScale(SCALE/2, SCALE/2);
+                
+                _nBlocks++;
+            }
         }
     }
 
     // Ball init
     _ball.addTexture(&tBall);
     _ball.setTexture();
-    _ball.sprite.setPosition(260*SCALE, 300*SCALE);
-    _ball.sprite.setScale(SCALE, SCALE);
+    _ball.sprite.setPosition(WIDTH/2*SCALE, (HEIGHT-200)*SCALE);
+    _ball.sprite.setScale(SCALE/2, SCALE/2);
     _ball.setSpeed(((rand()%31-15)/10.f)*SCALE, 4*SCALE);
     
+
+    SoundInit();
+}
+
+void Game::SoundInit()
+{
+    bWin.loadFromFile("assets/Arkanoid/win.wav");
+    bLose.loadFromFile("assets/Arkanoid/lose.wav");
+    bHit.loadFromFile("assets/Arkanoid/hit.wav");
+    bBounce.loadFromFile("assets/Arkanoid/bounce.wav");
+    sWin.setBuffer(bWin);
+    sLose.setBuffer(bLose);
+    sHit.setBuffer(bHit);
+    sBounce.setBuffer(bBounce);
 }
 
 void Game::Play()
@@ -83,73 +106,100 @@ void Game::Play()
         }
     }
     
-    // Check collision with edge
-    bounceWithEdge(_ball);
-
-    // Check collison with blocks
-    _ball.moveX();
-    if(isCollide(_ball, _blocks)) _ball.bounceX();
-
-    _ball.moveY();
-    if(isCollide(_ball, _blocks)) _ball.bounceY();
-    
-    // Check collision with paddle
-    if(isCollide(_ball, sPaddle))
+    if(!paused)
     {
-        _ball.bounceY();
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        // Check collision with edge
+        bounceWithEdge(_ball);
+
+        // Check collison with blocks
+        _ball.moveX();
+        if(isCollide(_ball, _blocks)) 
         {
-            _ball.setSpeedX((rand()%4-4)*SCALE);
+            _ball.bounceX();
+            _ball.moveX();
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+
+        _ball.moveY();
+        if(isCollide(_ball, _blocks))
         {
-            _ball.setSpeedX((rand()%4+1)*SCALE);
+            _ball.bounceY();
+            _ball.moveY();
         }
+
+        // Check collision with paddle
+        if(isCollide(_ball, sPaddle))
+        {
+            sBounce.play();
+            _ball.bounceY();
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            {
+                _ball.setSpeedX((rand()%4-4)*SCALE);
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            {
+                _ball.setSpeedX((rand()%4+1)*SCALE);
+            }
+        }
+
+        paddleMove();
+
+        window->clear();
+        window->draw(sBackground);
+        window->draw(_ball.sprite);
+        window->draw(sPaddle);
+
+        for(int i = 0; i < _nBlocks; i++)
+        {
+            window->draw(_blocks[i].sprite);
+        }
+
+        window->display();
     }
-
-    paddleMove();
-
-    window->clear();
-    window->draw(sBackground);
-    window->draw(_ball.sprite);
-    window->draw(sPaddle);
-
-    for(int i = 0; i < _nBlocks; i++)
-    {
-        window->draw(_blocks[i].sprite);
-    }
-
-    window->display();
 }
 
 void Game::End()
 {
+    sLose.play();
+    _sleep(3000);
     window->close();
+}
+
+void Game::Pause()
+{
+    paused = !paused;
 }
 
 void Game::paddleMove()
 {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
-        sPaddle.move(-6*SCALE, 0);
+        sPaddle.move(-5*SCALE, 0);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
     {
-        sPaddle.move(6*SCALE, 0);
+        sPaddle.move(5*SCALE, 0);
     }
 
     sf::Vector2f p = sPaddle.getPosition();
-    if (p.x < 0*SCALE) sPaddle.move(6*SCALE, 0);
-    if (p.x > 520*SCALE) sPaddle.move(-6*SCALE, 0);
+    if (p.x < 60*SCALE) sPaddle.move(5*SCALE, 0);
+    if (p.x > (WIDTH-60)*SCALE) sPaddle.move(-5*SCALE, 0);
 }
 
 void Game::bounceWithEdge(Ball &ball)
 {
     sf::Vector2f b = ball.sprite.getPosition();
-    if (b.x < 0 || b.x > 520*SCALE) ball.bounceX();
-    if (b.y < 0 || b.y > 450*SCALE) ball.bounceY();
+    if (b.x < 23*SCALE || b.x > (WIDTH-23)*SCALE)
+    {
+        sBounce.play();
+        ball.bounceX();
+    }
+    if (b.y < 23*SCALE)
+    {
+        sBounce.play();
+        ball.bounceY();
+    }
 
-    if(ball.sprite.getPosition().y >= 450*SCALE)
+    if(ball.sprite.getPosition().y >= (HEIGHT-10)*SCALE)
     {
         End();
     }
@@ -162,8 +212,13 @@ bool Game::isCollide(Ball &ball, std::vector<Block> &blocks)
     {
         if(isCollide(_blocks[i], _ball))
         {
-            _blocks.erase(_blocks.begin() + i);
-            _nBlocks--;
+            sHit.play();
+            _blocks[i].hit();
+            if(_blocks[i].isDestroyed())
+            {
+                _blocks.erase(_blocks.begin() + i);
+                _nBlocks--;
+            }
             collide = true;
         }
     }

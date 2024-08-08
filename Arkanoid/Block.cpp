@@ -12,3 +12,16 @@ void Block::setTexture()
 {
     sprite.setTexture((*_tBlocks)[_durability - 1]);
 }
+
+void Block::hit()
+{
+    _durability--;
+    if(_durability > 0)
+    {
+        sprite.setTexture((*_tBlocks)[_durability - 1]);
+    }
+    else
+    {
+        _destroyed = true;
+    }
+}
