@@ -3,6 +3,7 @@ set(ARKANOID_SOURCES
     Game.cpp
     Block.cpp
     Ball.cpp
+    MainMenu.cpp
 )
 
 # if(WIN32)

@@ -1,9 +1,20 @@
 #include "Game.hpp"
-#include <iostream>
 
 Game::Game()
 {
+}
+
+Game::~Game()
+{
+}
+
+void Game::Run()
+{
     Init();
+
+    _menu = std::make_unique<MainMenu>(window);
+    _menu->Init();
+
     while(window->isOpen())
     {
         Play();
@@ -13,18 +24,13 @@ Game::Game()
             _sleep(100);
         }
     }
-
-}
-
-Game::~Game()
-{
 }
 
 void Game::Init()
 {
     srand(time(nullptr));
 
-    window = std::make_unique<sf::RenderWindow>(sf::VideoMode(WIDTH*SCALE, HEIGHT*SCALE), "Arkanoid Game!", sf::Style::Close);
+    window = std::make_shared<sf::RenderWindow>(sf::VideoMode(WIDTH*SCALE, HEIGHT*SCALE), "Arkanoid Game!", sf::Style::Close);
     window->setFramerateLimit(60);
 
     // Blocks Textures
@@ -155,13 +161,20 @@ void Game::Play()
 
         window->display();
     }
+
+    if(_nBlocks == 0)
+    {
+        sWin.play();
+        End();
+    }
 }
 
 void Game::End()
 {
-    sLose.play();
     _sleep(3000);
     window->close();
+    Run();
+    
 }
 
 void Game::Pause()
@@ -201,6 +214,7 @@ void Game::bounceWithEdge(Ball &ball)
 
     if(ball.sprite.getPosition().y >= (HEIGHT-10)*SCALE)
     {
+        sLose.play();
         End();
     }
 }

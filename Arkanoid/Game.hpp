@@ -1,9 +1,11 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+
 #include <time.h>
 #include <vector>
 #include <memory>
 
+#include "MainMenu.hpp"
 #include "Block.hpp"
 #include "Ball.hpp"
 
@@ -37,7 +39,7 @@ private:
     std::vector<Block> _blocks;
     Ball _ball;
 
-    std::unique_ptr<sf::RenderWindow> window;
+    std::shared_ptr<sf::RenderWindow> window;
     sf::Texture tBlock1, tBlock2, tBlock3, tBlock4, tBlock5, tBackground, tBall, tPaddle;
     std::vector<sf::Texture> tBlocks = {tBlock1, tBlock2, tBlock3, tBlock4, tBlock5};
     sf::Sprite sBackground, sPaddle;
@@ -45,9 +47,12 @@ private:
     sf::SoundBuffer bWin, bLose, bHit, bBounce;
     sf::Sound sWin, sLose, sHit, sBounce;
 
+    std::unique_ptr<MainMenu> _menu;
+
 public:
     Game();
     ~Game();
+    void Run();
     void Init();
     void SoundInit();
     void Play();
